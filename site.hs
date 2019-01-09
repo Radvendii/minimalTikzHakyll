@@ -3,7 +3,6 @@ import Hakyll
 import Text.Pandoc.Definition
 import Text.Pandoc.Walk (walkM)
 import Control.Monad ((>=>))
-import Data.List (sortBy,isSuffixOf,sort,(\\))
 import Data.ByteString.Lazy.Char8 (pack, unpack)
 import qualified Network.URI.Encode as URI (encode)
 
