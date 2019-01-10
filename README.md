@@ -4,7 +4,7 @@ To use this you'll have to have `rubber-pipe` and `pdftocairo` on your system. T
 
 ## Hakyll + TikZ
 
-This git repository contains a minimal example for how to easily embed TikZ diagrams into your Hakyll website. I wrote up a [blog post](taeer.bar-yam.me/blog/posts/hakyll-tikz) on how it works, but it should be fairly self-explanatory.
+This git repository contains a minimal example for how to easily embed TikZ diagrams into your Hakyll website. I wrote up a [blog post](https://taeer.bar-yam.me/blog/posts/hakyll-tikz) on how it works, but it should be fairly self-explanatory.
 
 The end result is that you can write this in the markdown:
 
