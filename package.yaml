@@ -1,0 +1,13 @@
+name: minimalTikzHakyll
+
+dependencies:
+    - base
+    - hakyll
+    - pandoc
+    - pandoc-types
+    - bytestring
+    - uri-encode
+    - text
+
+executable:
+    main: site.hs
