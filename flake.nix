@@ -31,12 +31,25 @@
         texliveFull
         poppler_utils
       ];
+      wrappedBuilder = stdenv.mkDerivation {
+        name = "${name}-builder-wrapped";
+        src = builder;
+        nativeBuildInputs = [
+          makeWrapper
+        ];
+        buildCommand = ''
+          cp -r $src $out
+          chmod -R +w $out
+          wrapProgram $out/bin/${name} \
+            --prefix PATH : ${lib.makeBinPath websiteBuildInputs}
+        '';
+      };
   in {
     packages = rec {
       inherit (pkgs) rubber poppler_utils;
       texlive = pkgs.texliveFull;
 
-      inherit builder;
+      inherit builder wrappedBuilder;
       default = website;
       website = stdenv.mkDerivation {
         inherit name src;
@@ -71,7 +84,7 @@
     };
     apps.default = {
       type = "app";
-      program = builder + "/bin/${name}";
+      program = wrappedBuilder + "/bin/${name}";
     };
   });
 }
