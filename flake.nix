@@ -1,24 +1,77 @@
 {
   description = "Minimal Tikz Hakyll Example";
-  inputs.hakyll-flakes.url = "github:Radvendii/hakyll-flakes";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.nixpkgs.url = "github:nixos/nixpkgs";
 
-  outputs = { self, hakyll-flakes, flake-utils, nixpkgs }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      nixpkgs.lib.recursiveUpdate
-      (hakyll-flakes.lib.mkAllOutputs {
-        inherit system;
-        name = "minimalTikzHakyll";
-        src = ./.;
-        websiteBuildInputs = with nixpkgs.legacyPackages.${system}; [
-          rubber
-          texlive.combined.scheme-full
-          poppler_utils
+  inputs = {
+    nixpkgs.url = "nixpkgs/nixos-25.05";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+  flake-utils.lib.eachDefaultSystem (system:
+  let
+    inherit (nixpkgs) lib;
+    pkgs = nixpkgs.legacyPackages.${system};
+      inherit (pkgs) stdenv glibcLocales mkShell haskellPackages makeWrapper;
+      name = "minimalTikzHakyll";
+      src = lib.fileset.toSource {
+        root = ./.;
+        fileset = lib.fileset.unions [
+          ./css
+          ./index.md
+          ./templates
+          ./site.hs
+          ./package.yaml
         ];
-      }) {
-        packages = { inherit (nixpkgs.legacyPackages.${system}) rubber poppler_utils; texlive = nixpkgs.legacyPackages.${system}.texlive.combined.scheme-full; };
-      }
-    );
+      };
+      builder = haskellPackages.callCabal2nix name src {};
+      haskell-env = pkgs.ghc.withHoogle (hp: with hp; [ haskell-language-server cabal-install ] ++ builder.buildInputs);
+      websiteBuildInputs = with pkgs; [
+        # other inputs you need to build the website. e.g.
+        rubber
+        texliveFull
+        poppler_utils
+      ];
+  in {
+    packages = rec {
+      inherit (pkgs) rubber poppler_utils;
+      texlive = pkgs.texliveFull;
+
+      inherit builder;
+      default = website;
+      website = stdenv.mkDerivation {
+        inherit name src;
+        buildInputs = [ builder ] ++ websiteBuildInputs;
+        LANG = "en_US.UTF-8";
+        LC_ALL = "en_US.UTF-8";
+        LOCALE_ARCHIVE = "${glibcLocales}/lib/locale/locale-archive";
+        # don't look in fcaches for this; speeds things up a little
+        allowSubstitutes = false;
+        buildPhase = ''
+          ${name} build
+        '';
+        installPhase = ''
+          cp -R _site $out
+        '';
+        dontStrip = true;
+      };
+    };
+    devShells.default = mkShell {
+      name = "${name}-env";
+      buildInputs = [ haskell-env ] ++ websiteBuildInputs;
+
+      shellHook = ''
+        export HAKYLL_ENV="development"
+
+        export HIE_HOOGLE_DATABASE="${haskell-env}/share/doc/hoogle/default.hoo"
+        export NIX_GHC="${haskell-env}/bin/ghc"
+        export NIX_GHCPKG="${haskell-env}/bin/ghc-pkg"
+        export NIX_GHC_DOCDIR="${haskell-env}/share/doc/ghc/html"
+        export NIX_GHC_LIBDIR=$( $NIX_GHC --print-libdir )
+      '';
+    };
+    apps.default = {
+      type = "app";
+      program = builder + "/bin/${name}";
+    };
+  });
 }
